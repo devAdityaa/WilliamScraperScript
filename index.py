@@ -1,6 +1,7 @@
 import pandas as pd
 import logging
 import sys
+import csv
 from tqdm import tqdm
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -32,6 +33,22 @@ keywords = [
     "connector"
 ]
 
+
+def check_captcha_presence(driver):
+    try:
+        driver.find_element('css selector','#recaptcha')
+        return 1
+    except:
+        return 0
+def solve_for_captcha(driver):
+    captcha = check_captcha_presence(driver)
+    while(captcha):
+        captcha = check_captcha_presence(driver)
+        time.sleep(10)
+    recheck = check_captcha_presence(driver)
+    if(recheck):
+        solve_for_captcha(driver)
+    return
 def get_driver():
     chrome_options = Options()
     #chrome_options.add_argument("--headless")
@@ -66,8 +83,13 @@ def search_google(driver, url, wait):
     
     # Open the search URL
     driver.get(search_url)
+    isCaptcha=check_captcha_presence(driver)
     
+    if(isCaptcha):
+        logging.error('Captcha Encountred, please solve capthca to continue')
+        solve_for_captcha(driver)
     hasKeywords = check_search_results(driver, url)
+    time.sleep(3)
     return hasKeywords
 
 def check_search_results(driver, matchUrl):
@@ -94,7 +116,7 @@ def use_selenium_to_get_text(driver,url, matchUrl,obj):
         
         # Get the text of the page
         text = driver.execute_script('return document.body.innerText')
-        
+        time.sleep(3)
         # Navigate back to the start page
         driver.back()
         
@@ -150,65 +172,79 @@ def validate_columns(df, required_columns):
 
 
     
-      
-def update_excel_with_products(file_path, sheet_name):
+def update_excel_with_products(file_path, sheet_name, output_csv_file):
     lead_sheet = read_excel_file(file_path, sheet_name)
     required_columns = ["Website URL"]
     lead_sheet = validate_columns(lead_sheet, required_columns)
+    
     output_column1 = "Quick Change Connectors or Disconnect Connectors or Change Connectors Found in site? (YES/NO)"
     output_column2 = "Fluid Connectors or Hydraulic Connectors or Fluid or Hydraulic Found in site? (YES/NO)"
     output_column1_links = "Quick Change Connector Links"
     output_column2_links = "Fluid Connectors Links"
+
     lead_sheet[output_column1] = ""
     lead_sheet[output_column2] = ""
+
     # Filter only non-empty rows in the "Website URL" column
     lead_sheet = lead_sheet[lead_sheet["Website URL"].notna()]
 
     driver = get_driver()
-    browse_initial_sites(session,headers)
+    browse_initial_sites(session, headers)
     wait = WebDriverWait(driver, 10)
     total_rows = len(lead_sheet)
-    with tqdm(total=total_rows, file=sys.stdout, desc="Processing rows") as pbar:
-        for index, row in lead_sheet.iterrows():
-            try:
-                website_url = row["Website URL"]
-                
-                keyword_check = search_google(driver, "https://www."+website_url, wait)
-                print(keyword_check)
-                arr1 = ['quick conector','quick disconnect','connector',"change connector"]
-                arr2 = ['fluid connector','hydraulic connector']
-                if (len(keyword_check)==0):
-                    base_url = 'https://www.google.com/search?q='
-                    query = f'''inurl:{website_url} ("quick change connector" OR "connector" OR "quick disconnect connector" OR "quick connector" OR "fluid connector" OR "hydraulic connector" or "hydraulic" or "fluid") (product OR buy OR shop OR store OR price OR catalog OR 
-            specifications)'''
-    # Encode the query to be URL-safe
-                    encoded_query = quote_plus(query)
     
-    # Construct the full URL
-                    search_url = base_url + encoded_query
-                    lead_sheet.at[index, output_column1] = 'NO'
-                    lead_sheet.at[index, output_column2] = 'NO'
-                    lead_sheet.at[index, output_column1_links] =search_url
-                    lead_sheet.at[index, output_column2_links] =search_url
-                else:
-                    for keyword in keyword_check:
-                        if keyword in arr1:
-                            print("Arr1",keyword,keyword_check[keyword])
-                            lead_sheet.at[index, output_column1] = 'YES'
-                            lead_sheet.at[index, output_column2] = 'YES'
-                            lead_sheet.at[index, output_column1] =keyword_check[keyword]
-                        elif keyword in arr2:
-                            print("Arr2",keyword,keyword_check[keyword])
-                            lead_sheet.at[index, output_column2] =keyword_check[keyword]
-                lead_sheet.to_excel(file_path, sheet_name=sheet_name, index=False)
-                pbar.update(1)
-            except Exception as e:
-                logging.error(f"Error processing row {index}: {e}")
-                pbar.update(1)
+    # Open the CSV file for writing
+    with open(output_csv_file, mode='w', newline='') as csv_file:
+        csv_writer = csv.DictWriter(csv_file, fieldnames=["Website URL", output_column1, output_column2, output_column1_links, output_column2_links])
+        csv_writer.writeheader()
+        
+        with tqdm(total=total_rows, file=sys.stdout, desc="Processing rows") as pbar:
+            for index, row in lead_sheet.iterrows():
+                try:
+                    website_url = row["Website URL"]
+                    keyword_check = search_google(driver, "https://www." + website_url, wait)
+                    print(keyword_check)
+                    
+                    arr1 = ['quick connector', 'quick disconnect', 'connector', "change connector"]
+                    arr2 = ['fluid connector', 'hydraulic connector']
+                    
+                    row_data = {
+                        "Website URL": website_url,
+                        output_column1: 'NO',
+                        output_column2: 'NO',
+                        output_column1_links: '',
+                        output_column2_links: ''
+                    }
+                    
+                    if len(keyword_check) == 0:
+                        base_url = 'https://www.google.com/search?q='
+                        query = f'''inurl:{website_url} ("quick change connector" OR "connector" OR "quick disconnect connector" OR "quick connector" OR "fluid connector" OR "hydraulic connector" or "hydraulic" or "fluid") (product OR buy OR shop OR store OR price OR catalog OR specifications)'''
+                        encoded_query = quote_plus(query)
+                        search_url = base_url + encoded_query
+                        row_data[output_column1_links] = search_url
+                        row_data[output_column2_links] = search_url
+                    else:
+                        for keyword in keyword_check:
+                            if keyword in arr1:
+                                print("Arr1", keyword, keyword_check[keyword])
+                                row_data[output_column1] = 'YES'
+                                row_data[output_column1_links] = keyword_check[keyword]
+                            elif keyword in arr2:
+                                print("Arr2", keyword, keyword_check[keyword])
+                                row_data[output_column2] = 'YES'
+                                row_data[output_column2_links] = keyword_check[keyword]
+                    
+                    csv_writer.writerow(row_data)
+                    pbar.update(1)
+                except Exception as e:
+                    logging.error(f"Error processing row {index}: {e}")
+                    pbar.update(1)
+                    
     driver.quit()
 
 if __name__ == "__main__":
     update_excel_with_products(
         file_path='./excel.xlsx',
         sheet_name='Sheet1',
+        output_csv_file='output.csv'
     )
