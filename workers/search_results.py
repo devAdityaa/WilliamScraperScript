@@ -32,9 +32,8 @@ def use_selenium_to_get_text(driver,url, matchUrl,obj):
         # Check for keywords in the text
         for keyword in keywords:
             if keyword.lower() in text.lower():
-                if keyword not in obj:
-                    if url.startswith(matchUrl):
-                        obj[keyword] = url
+                if url.startswith(matchUrl):
+                    obj[keyword] = url
                         
         return obj
         
@@ -42,7 +41,7 @@ def use_selenium_to_get_text(driver,url, matchUrl,obj):
         return {}
 def check_website_text(url, matchUrl, obj):
     try:
-        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
+        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
         
