@@ -151,6 +151,6 @@ def update_csv_with_links(file_path, sheet_name, output_csv_file):
 if __name__ == "__main__":
     update_csv_with_links(
         file_path='./excel.xlsx',
-        sheet_name='Sheet1',
+        sheet_name='Sheet3',
         output_csv_file='./csvs/example.csv'
     )

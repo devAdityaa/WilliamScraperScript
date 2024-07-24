@@ -3,10 +3,8 @@ from openpyxl import Workbook
 from openpyxl import load_workbook
 import os
 
-
-
 def create_hyperlinked_excel(csv_files, text_cols, link_cols, output_excel):
-  # Check if the Excel file already exists
+    # Check if the Excel file already exists
     if os.path.exists(output_excel):
         # Load the existing workbook
         wb = load_workbook(output_excel)
@@ -31,12 +29,15 @@ def create_hyperlinked_excel(csv_files, text_cols, link_cols, output_excel):
 
         # Add headers if the sheet is newly created
         if ws.max_row == 1 and ws.cell(1, 1).value is None:
-            ws.append(['Website'] + text_cols)
+            ws.append(['Website URL'] + text_cols)
 
         # Iterate over the rows of the DataFrame
         for idx, row in df.iterrows():
+            # Get the website URL from the CSV
+            website_url = row['Website']
+            
             # Create a list for the new row with the URL first
-            new_row = [row[link_cols[0]]]
+            new_row = [website_url]
 
             # Iterate over the text and link columns to create hyperlinked text
             for text_col, link_col in zip(text_cols, link_cols):
@@ -53,7 +54,7 @@ def create_hyperlinked_excel(csv_files, text_cols, link_cols, output_excel):
 
 # Usage example
 csv_files = ['./csvs/nema.csv']
-text_cols = ['Quick Change Connectors or Disconnect Connectors or Change Connectors Found in site? (YES/NO)', 'Fluid Connectors or Hydraulic Connectors or Fluid or Hydraulic Found in site? (YES/NO)','Coupling (YES/NO)']
+text_cols = ['Quick Change Connectors or Disconnect Connectors or Change Connectors Found in site? (YES/NO)', 'Fluid Connectors or Hydraulic Connectors or Fluid or Hydraulic Found in site? (YES/NO)', 'Coupling (YES/NO)']
 link_cols = ['Quick Change Connector Links', 'Fluid Connectors Links', 'Coupling Links']
 output_excel = 'output.xlsx'
 
