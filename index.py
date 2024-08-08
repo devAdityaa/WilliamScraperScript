@@ -16,7 +16,7 @@ import requests
 
 from workers.captcha import check_captcha_presence, solve_for_captcha, auto_captcha_solve
 from workers.search_results import check_search_results
-from workers.keywords import arr1, arr2, arr3, search_query
+from workers.keywords import arr1, search_query
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 session = requests.Session()
@@ -36,7 +36,7 @@ def get_driver():
     #chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    driver = webdriver.Chrome(executable_path="./cdriver/chromedriver", options=chrome_options)
     return driver
     
 def search_google(driver, url):
@@ -53,7 +53,7 @@ def search_google(driver, url):
         if(not solved):
             logging.info("Can't auto solve captcha, please solve it manually to continue")
             solve_for_captcha(driver)
-    hasKeywords = check_search_results(driver, url)
+    hasKeywords = check_search_results(driver, url) 
     time.sleep(3)
     return hasKeywords
 
@@ -79,16 +79,10 @@ def update_csv_with_links(file_path, sheet_name, output_csv_file):
     required_columns = ["Website URL"]
     lead_sheet = validate_columns(lead_sheet, required_columns)
     
-    output_column1 = "Quick Change Connectors or Disconnect Connectors or Change Connectors Found in site? (YES/NO)"
-    output_column2 = "Fluid Connectors or Hydraulic Connectors or Fluid or Hydraulic Found in site? (YES/NO)"
-    output_column3 = "Coupling (YES/NO)"
-    output_column3_links = "Coupling Links"
-    output_column1_links = "Quick Change Connector Links"
-    output_column2_links = "Fluid Connectors Links"
+    output_column1 = "Hose OR Cooling Hose OR IT Cooling Hose Keywords Found in site? (YES/NO)" 
+    output_column1_links = "Cooling Hose Links"
 
     lead_sheet[output_column1] = ""
-    lead_sheet[output_column2] = ""
-    lead_sheet[output_column3] = ""
     lead_sheet = lead_sheet[lead_sheet["Website URL"].notna()]
 
     driver = get_driver()
@@ -96,49 +90,42 @@ def update_csv_with_links(file_path, sheet_name, output_csv_file):
     total_rows = len(lead_sheet)
     
     with open(output_csv_file, mode='w', newline='') as csv_file:
-        csv_writer = csv.DictWriter(csv_file, fieldnames=["Website URL", output_column1, output_column2, output_column3, output_column1_links, output_column2_links, output_column3_links])
+        csv_writer = csv.DictWriter(csv_file, fieldnames=["Website URL", output_column1,output_column1_links])
         csv_writer.writeheader()
         
         with tqdm(total=total_rows, file=sys.stdout, desc="Processing rows") as pbar:
             for index, row in lead_sheet.iterrows():
                 try:
                     website_url = row["Website URL"]
-                    keyword_check = search_google(driver, "https://www." + website_url)
-                    print(keyword_check)
-                    
+                    keyword_check = search_google(driver, website_url) 
                     
                     row_data = {
                         "Website URL": website_url,
                         output_column1: 'NO',
-                        output_column2: 'NO',
-                        output_column3: 'NO',
+                        
+                       
                         output_column1_links: '',
-                        output_column2_links: '',
-                        output_column3_links: ''
+                        
+                    
                     }
                     
 
                     base_url = 'https://www.google.com/search?q='
-                    query = f'''inurl:{website_url} ("quick change connector" OR "connector" OR "quick disconnect connector" OR "quick connector" OR "fluid connector" OR "hydraulic connector" or "hydraulic" or "fluid") (product OR buy OR shop OR store OR price OR catalog OR specifications)'''
+                    query = f'''inurl:{website_url} ({search_query})'''
                     encoded_query = quote_plus(query)
                     search_url = base_url + encoded_query
                     row_data[output_column1_links] = search_url
-                    row_data[output_column2_links] = search_url
-                    row_data[output_column3_links] = search_url
+                   
+                   
                     
-                    for keyword in keyword_check:
-                        if keyword in arr1:
-                            print("Arr1", keyword, keyword_check[keyword])
+                    for keywordPair in keyword_check:
+                        
+                        if keywordPair[0] in arr1:
+                            
                             row_data[output_column1] = 'YES'
-                            row_data[output_column1_links] = keyword_check[keyword]
-                        elif keyword in arr2:
-                            print("Arr2", keyword, keyword_check[keyword])
-                            row_data[output_column2] = 'YES'
-                            row_data[output_column2_links] = keyword_check[keyword]
-                        elif keyword in arr3:
-                            print("Arr2", keyword, keyword_check[keyword])
-                            row_data[output_column3] = 'YES'
-                            row_data[output_column3_links] = keyword_check[keyword]
+                            row_data[output_column1_links] = keywordPair[1]
+                       
+                        
                     
                     csv_writer.writerow(row_data)
                     pbar.update(1)
@@ -151,6 +138,6 @@ def update_csv_with_links(file_path, sheet_name, output_csv_file):
 if __name__ == "__main__":
     update_csv_with_links(
         file_path='./excel.xlsx',
-        sheet_name='Sheet3',
-        output_csv_file='./csvs/example.csv'
+        sheet_name='Sheet1',
+        output_csv_file='./csvs/rawResults.csv'
     )

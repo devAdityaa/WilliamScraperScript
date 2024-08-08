@@ -34,7 +34,7 @@ def create_hyperlinked_excel(csv_files, text_cols, link_cols, output_excel):
         # Iterate over the rows of the DataFrame
         for idx, row in df.iterrows():
             # Get the website URL from the CSV
-            website_url = row['Website']
+            website_url = row['Website URL']
             
             # Create a list for the new row with the URL first
             new_row = [website_url]
@@ -53,9 +53,9 @@ def create_hyperlinked_excel(csv_files, text_cols, link_cols, output_excel):
     wb.save(output_excel)
 
 # Usage example
-csv_files = ['./csvs/nema.csv']
-text_cols = ['Quick Change Connectors or Disconnect Connectors or Change Connectors Found in site? (YES/NO)', 'Fluid Connectors or Hydraulic Connectors or Fluid or Hydraulic Found in site? (YES/NO)', 'Coupling (YES/NO)']
-link_cols = ['Quick Change Connector Links', 'Fluid Connectors Links', 'Coupling Links']
-output_excel = 'output.xlsx'
+csv_files = ['./csvs/rawResults.csv']
+text_cols = ['Hose OR Cooling Hose OR IT Cooling Hose Keywords Found in site? (YES/NO)']
+link_cols = ['Cooling Hose Links']
+output_excel = 'output2.xlsx'
 
 create_hyperlinked_excel(csv_files, text_cols, link_cols, output_excel)

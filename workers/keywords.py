@@ -1,14 +1,12 @@
 keywords = [
-    "Quick connector",
-    "quick disconnect",
-    "change connector",
-    "fluid connector",
-    "hydraulic connector",
-    "connector",
-    "coupling"
+    "cooling hose",
+    "hose",
+    "it cooling",
+    "it cooling hose",
 ] #Keywords to search in a website
 
-search_query = '"quick change connector" OR "connector" OR "quick disconnect connector" OR "quick connector" OR "fluid connector" OR "hydraulic connector" or "hydraulic" or "fluid" or "coupling" or "couplings") (product OR buy OR shop OR store OR price OR catalog OR specification'
-arr1 = ['quick connector', 'quick disconnect', 'connector', "change connector"] #Group 1 keywords (Seperat column)
-arr2 = ['fluid connector', 'hydraulic connector'] #Group 2 keywords (Seperate column)
-arr3 = ["coupling"]
+search_query = '"hose" OR "it cooling" OR "it cooling hose" OR “cooling hose”) (products OR buy OR sales OR shops OR stores OR prices OR catalog OR specifications'
+
+
+arr1 = ['hose', 'it cooling', 'it cooling hose', 'cooling hose'] #Group 1 keywords (Seperat column)
+
